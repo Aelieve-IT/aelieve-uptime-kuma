@@ -31,7 +31,7 @@ jobs:
       with:
         push: true
         tags: aelieveuptime.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_9ffa9cbdab4b4a899766ddcd9dc6438e }}/aeleive-uptime-kuma:${{ github.sha }}
-        file: ./Dockerfile
+        file: ./docker/Dockerfile
 
   deploy:
     runs-on: ubuntu-latest
