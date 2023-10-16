@@ -45,11 +45,5 @@ jobs:
         publish-profile: ${{ secrets.AzureAppService_PublishProfile_1097c886564b4329a809ad12e3703e3f }}
         images: 'aelieveuptime.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_9ffa9cbdab4b4a899766ddcd9dc6438e }}/aeleive-uptime-kuma:${{ github.sha }}'    
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    environment:
-      name: 'production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     
