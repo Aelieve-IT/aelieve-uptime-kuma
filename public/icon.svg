@@ -1,10 +1,1 @@
-<svg width="640" height="640" viewBox="0 0 640 640" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M490.4 235.64C544.09 358.38 544.09 435.34 490.4 466.5C409.85 513.24 199.96 527.49 139.54 455.64C99.2601 407.74 99.2601 334.4 139.54 235.64C180.5 168.18 238.71 134.45 314.17 134.45C389.64 134.45 448.38 168.18 490.4 235.64Z" fill="url(#paint0_linear_381_799)"/>
-<path d="M490.4 235.64C544.09 358.38 544.09 435.34 490.4 466.5C409.85 513.24 199.96 527.49 139.54 455.64C99.2601 407.74 99.2601 334.4 139.54 235.64C180.5 168.18 238.71 134.45 314.17 134.45C389.64 134.45 448.38 168.18 490.4 235.64Z" stroke="#F2F2F2" stroke-opacity="0.51" stroke-width="200"/>
-<defs>
-<linearGradient id="paint0_linear_381_799" x1="259.78" y1="261.15" x2="463.85" y2="456.49" gradientUnits="userSpaceOnUse">
-<stop stop-color="#5CDD8B"/>
-<stop offset="1" stop-color="#86E6A9"/>
-</linearGradient>
-</defs>
-</svg>
+<?xml version="1.0" encoding="UTF-8"?><svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><style>.cls-1{fill:#fff;}.cls-1,.cls-2{stroke-width:0px;}.cls-2{fill:#12161b;}</style></defs><rect class="cls-2" x="-4" y="-4" width="136" height="136"/><path class="cls-1" d="m64.1,1C29.3,1,1.1,29.2,1.1,64s28.2,63,63,63,63-28.2,63-63S98.9,1,64.1,1Zm12.3,71.7h0l-7,9.1c-.3.3-.8.2-.8-.2l-4.4-51.2-4.4,51.2c0,.4-.6.6-.8.2l-7-9h0l-30,16.9,20-29.9,4.5-6.7c.3-.4.9-.2.9.3v6.5l16.9-29.5h0l16.7,29.3v-6.5c0-.5.6-.6.9-.3l4.5,6.7,20,29.9-30-16.8Z"/></svg>

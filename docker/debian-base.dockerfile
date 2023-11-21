@@ -44,7 +44,8 @@ COPY ./docker/etc/sudoers /etc/sudoers
 # MariaDB, Chromium and fonts
 FROM base2-slim AS base2
 ENV UPTIME_KUMA_ENABLE_EMBEDDED_MARIADB=1
-RUN apt update && \
+RUN echo "deb http://deb.debian.org/debian testing main" >> /etc/apt/sources.list && \
+    apt update && \
     apt --yes --no-install-recommends install chromium fonts-indic fonts-noto fonts-noto-cjk mariadb-server && \
     rm -rf /var/lib/apt/lists/* && \
     apt --yes autoremove && \
