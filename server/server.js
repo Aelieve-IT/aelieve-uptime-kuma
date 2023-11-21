@@ -327,12 +327,12 @@ let needSetup = false;
                     decoded.username,
                 ]);
 
-                // Check if the password changed
-                if (decoded.h !== shake256(user.password, SHAKE256_LENGTH)) {
-                    throw new Error("The token is invalid due to password change or old token");
-                }
-
                 if (user) {
+                    // Check if the password changed
+                    if (decoded.h !== shake256(user.password, SHAKE256_LENGTH)) {
+                        throw new Error("The token is invalid due to password change or old token");
+                    }
+
                     log.debug("auth", "afterLogin");
                     afterLogin(socket, user);
                     log.debug("auth", "afterLogin ok");
@@ -832,6 +832,9 @@ let needSetup = false;
                 bean.kafkaProducerAllowAutoTopicCreation = monitor.kafkaProducerAllowAutoTopicCreation;
                 bean.kafkaProducerSaslOptions = JSON.stringify(monitor.kafkaProducerSaslOptions);
                 bean.kafkaProducerMessage = monitor.kafkaProducerMessage;
+                bean.kafkaProducerSsl = monitor.kafkaProducerSsl;
+                bean.kafkaProducerAllowAutoTopicCreation =
+                    monitor.kafkaProducerAllowAutoTopicCreation;
                 bean.gamedigGivenPortOnly = monitor.gamedigGivenPortOnly;
 
                 bean.validate();
@@ -1939,6 +1942,7 @@ async function pauseMonitor(userID, monitorID) {
 
     if (monitorID in server.monitorList) {
         server.monitorList[monitorID].stop();
+        server.monitorList[monitorID].active = 0;
     }
 }
 
@@ -2007,8 +2011,10 @@ gracefulShutdown(server.httpServer, {
 });
 
 // Catch unexpected errors here
-process.addListener("unhandledRejection", (error, promise) => {
+let unexpectedErrorHandler = (error, promise) => {
     console.trace(error);
     UptimeKumaServer.errorLog(error, false);
     console.error("If you keep encountering errors, please report to https://github.com/louislam/uptime-kuma/issues");
-});
+};
+process.addListener("unhandledRejection", unexpectedErrorHandler);
+process.addListener("uncaughtException", unexpectedErrorHandler);

@@ -2,11 +2,11 @@ const https = require("https");
 const dayjs = require("dayjs");
 const axios = require("axios");
 const { Prometheus } = require("../prometheus");
-const { log, UP, DOWN, PENDING, MAINTENANCE, flipStatus, MAX_INTERVAL_SECOND, MIN_INTERVAL_SECOND,
-    SQL_DATETIME_FORMAT
+const { log, UP, DOWN, PENDING, MAINTENANCE, flipStatus, TimeLogger, MAX_INTERVAL_SECOND, MIN_INTERVAL_SECOND,
+    SQL_DATETIME_FORMAT, isDev, sleep, getRandomInt
 } = require("../../src/util");
-const { tcping, ping, checkCertificate, checkStatusCode, getTotalClientInRoom, setting, mssqlQuery, postgresQuery, mysqlQuery, mqttAsync, setSetting, httpNtlm, radius, grpcQuery,
-    redisPingAsync, mongodbPing, kafkaProducerAsync, getOidcTokenClientCredentials,
+const { tcping, ping, dnsResolve, checkCertificate, checkStatusCode, getTotalClientInRoom, setting, mssqlQuery, postgresQuery, mysqlQuery, mqttAsync, setSetting, httpNtlm, radius, grpcQuery,
+    redisPingAsync, mongodbPing, kafkaProducerAsync, getOidcTokenClientCredentials, rootCertificatesFingerprints, axiosAbortSignal
 } = require("../util-server");
 const { R } = require("redbean-node");
 const { BeanModel } = require("redbean-node/dist/bean-model");
@@ -21,7 +21,9 @@ const { DockerHost } = require("../docker");
 const Gamedig = require("gamedig");
 const jsonata = require("jsonata");
 const jwt = require("jsonwebtoken");
-const { UptimeCalculator } = require("../uptime-calculator");
+const crypto = require("crypto");
+
+const rootCertificates = rootCertificatesFingerprints();
 
 /**
  * status:
@@ -146,8 +148,8 @@ class Monitor extends BeanModel {
             expectedValue: this.expectedValue,
             kafkaProducerTopic: this.kafkaProducerTopic,
             kafkaProducerBrokers: JSON.parse(this.kafkaProducerBrokers),
-            kafkaProducerSsl: this.kafkaProducerSsl === "1" && true || false,
-            kafkaProducerAllowAutoTopicCreation: this.kafkaProducerAllowAutoTopicCreation === "1" && true || false,
+            kafkaProducerSsl: this.getKafkaProducerSsl(),
+            kafkaProducerAllowAutoTopicCreation: this.getKafkaProducerAllowAutoTopicCreation(),
             kafkaProducerMessage: this.kafkaProducerMessage,
             screenshot,
         };
@@ -299,6 +301,22 @@ class Monitor extends BeanModel {
     }
 
     /**
+     * Parse to boolean
+     * @returns {boolean} Kafka Producer Ssl enabled?
+     */
+    getKafkaProducerSsl() {
+        return Boolean(this.kafkaProducerSsl);
+    }
+
+    /**
+     * Parse to boolean
+     * @returns {boolean} Kafka Producer Allow Auto Topic Creation Enabled?
+     */
+    getKafkaProducerAllowAutoTopicCreation() {
+        return Boolean(this.kafkaProducerAllowAutoTopicCreation);
+    }
+
+    /**
      * Start monitor
      * @param {Server} io Socket server instance
      * @returns {void}
@@ -324,6 +342,16 @@ class Monitor extends BeanModel {
                 }
             }
 
+            // Evil
+            if (isDev) {
+                if (process.env.EVIL_RANDOM_MONITOR_SLEEP === "SURE") {
+                    if (getRandomInt(0, 100) === 0) {
+                        log.debug("evil", `[${this.name}] Evil mode: Random sleep: ` + beatInterval * 10000);
+                        await sleep(beatInterval * 10000);
+                    }
+                }
+            }
+
             // Expose here for prometheus update
             // undefined if not https
             let tlsInfo = undefined;
@@ -344,6 +372,19 @@ class Monitor extends BeanModel {
 
             if (this.isUpsideDown()) {
                 bean.status = flipStatus(bean.status);
+            }
+
+            // Duration
+            if (!isFirstBeat) {
+                bean.duration = dayjs(bean.time).diff(dayjs(previousBeat.time), "second");
+            } else {
+                bean.duration = 0;
+            }
+
+            // Runtime patch timeout if it is 0
+            // See https://github.com/louislam/uptime-kuma/pull/3961#issuecomment-1804149144
+            if (!this.timeout || this.timeout <= 0) {
+                this.timeout = this.interval * 1000 * 0.8;
             }
 
             try {
@@ -416,6 +457,7 @@ class Monitor extends BeanModel {
                     const httpsAgentOptions = {
                         maxCachedSessions: 0, // Use Custom agent to disable session reuse (https://github.com/nodejs/node/issues/3940)
                         rejectUnauthorized: !this.getIgnoreTls(),
+                        secureOptions: crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT,
                     };
 
                     log.debug("monitor", `[${this.name}] Prepare Options for axios`);
@@ -457,6 +499,7 @@ class Monitor extends BeanModel {
                         validateStatus: (status) => {
                             return checkStatusCode(status, this.getAcceptedStatuscodes());
                         },
+                        signal: axiosAbortSignal(this.timeout * 1000),
                     };
 
                     if (bodyValue) {
@@ -632,6 +675,7 @@ class Monitor extends BeanModel {
                         httpsAgent: CacheableDnsHttpAgent.getHttpsAgent({
                             maxCachedSessions: 0,      // Use Custom agent to disable session reuse (https://github.com/nodejs/node/issues/3940)
                             rejectUnauthorized: !this.getIgnoreTls(),
+                            secureOptions: crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT,
                         }),
                         httpAgent: CacheableDnsHttpAgent.getHttpAgent({
                             maxCachedSessions: 0,
@@ -674,8 +718,6 @@ class Monitor extends BeanModel {
                 } else if (this.type === "docker") {
                     log.debug("monitor", `[${this.name}] Prepare Options for Axios`);
 
-                    const dockerHost = await R.load("docker_host", this.docker_host);
-
                     const options = {
                         url: `/containers/${this.docker_container}/json`,
                         timeout: this.interval * 1000 * 0.8,
@@ -686,11 +728,18 @@ class Monitor extends BeanModel {
                         httpsAgent: CacheableDnsHttpAgent.getHttpsAgent({
                             maxCachedSessions: 0,      // Use Custom agent to disable session reuse (https://github.com/nodejs/node/issues/3940)
                             rejectUnauthorized: !this.getIgnoreTls(),
+                            secureOptions: crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT,
                         }),
                         httpAgent: CacheableDnsHttpAgent.getHttpAgent({
                             maxCachedSessions: 0,
                         }),
                     };
+
+                    const dockerHost = await R.load("docker_host", this.docker_host);
+
+                    if (!dockerHost) {
+                        throw new Error("Failed to load docker host config");
+                    }
 
                     if (dockerHost._dockerType === "socket") {
                         options.socketPath = dockerHost._dockerDaemon;
@@ -726,7 +775,7 @@ class Monitor extends BeanModel {
                 } else if (this.type === "sqlserver") {
                     let startTime = dayjs().valueOf();
 
-                    await mssqlQuery(this.databaseConnectionString, this.databaseQuery);
+                    await mssqlQuery(this.databaseConnectionString, this.databaseQuery || "SELECT 1");
 
                     bean.msg = "";
                     bean.status = UP;
@@ -765,7 +814,7 @@ class Monitor extends BeanModel {
                 } else if (this.type === "postgres") {
                     let startTime = dayjs().valueOf();
 
-                    await postgresQuery(this.databaseConnectionString, this.databaseQuery);
+                    await postgresQuery(this.databaseConnectionString, this.databaseQuery || "SELECT 1");
 
                     bean.msg = "";
                     bean.status = UP;
@@ -773,7 +822,11 @@ class Monitor extends BeanModel {
                 } else if (this.type === "mysql") {
                     let startTime = dayjs().valueOf();
 
-                    bean.msg = await mysqlQuery(this.databaseConnectionString, this.databaseQuery);
+                    // Use `radius_password` as `password` field, since there are too many unnecessary fields
+                    // TODO: rename `radius_password` to `password` later for general use
+                    let mysqlPassword = this.radiusPassword;
+
+                    bean.msg = await mysqlQuery(this.databaseConnectionString, this.databaseQuery || "SELECT 1", mysqlPassword);
                     bean.status = UP;
                     bean.ping = dayjs().valueOf() - startTime;
                 } else if (this.type === "mongodb") {
@@ -948,15 +1001,8 @@ class Monitor extends BeanModel {
 
             if (! this.isStop) {
                 log.debug("monitor", `[${this.name}] SetTimeout for next check.`);
-
-                let intervalRemainingMs = Math.max(
-                    1,
-                    beatInterval * 1000 - dayjs().diff(dayjs.utc(bean.time))
-                );
-
-                log.debug("monitor", `[${this.name}] Next heartbeat in: ${intervalRemainingMs}ms`);
-
-                this.heartbeatInterval = setTimeout(safeBeat, intervalRemainingMs);
+                this.heartbeatInterval = setTimeout(safeBeat, beatInterval * 1000);
+                this.lastScheduleBeatTime = dayjs();
             } else {
                 log.info("monitor", `[${this.name}] isStop = true, no next check.`);
             }
@@ -969,7 +1015,9 @@ class Monitor extends BeanModel {
          */
         const safeBeat = async () => {
             try {
+                this.lastStartBeatTime = dayjs();
                 await beat();
+                this.lastEndBeatTime = dayjs();
             } catch (e) {
                 console.trace(e);
                 UptimeKumaServer.errorLog(e, false);
@@ -978,6 +1026,9 @@ class Monitor extends BeanModel {
                 if (! this.isStop) {
                     log.info("monitor", "Try to restart the monitor");
                     this.heartbeatInterval = setTimeout(safeBeat, this.interval * 1000);
+                    this.lastScheduleBeatTime = dayjs();
+                } else {
+                    log.info("monitor", "isStop = true, no next check.");
                 }
             }
         };
@@ -1318,7 +1369,10 @@ class Monitor extends BeanModel {
                     let certInfo = tlsInfoObject.certInfo;
                     while (certInfo) {
                         let subjectCN = certInfo.subject["CN"];
-                        if (certInfo.daysRemaining > targetDays) {
+                        if (rootCertificates.has(certInfo.fingerprint256)) {
+                            log.debug("monitor", `Known root cert: ${certInfo.certType} certificate "${subjectCN}" (${certInfo.daysRemaining} days valid) on ${targetDays} deadline.`);
+                            break;
+                        } else if (certInfo.daysRemaining > targetDays) {
                             log.debug("monitor", `No need to send cert notification for ${certInfo.certType} certificate "${subjectCN}" (${certInfo.daysRemaining} days valid) on ${targetDays} deadline.`);
                         } else {
                             log.debug("monitor", `call sendCertNotificationByTargetDays for ${targetDays} deadline on certificate ${subjectCN}.`);

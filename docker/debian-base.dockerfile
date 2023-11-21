@@ -1,5 +1,6 @@
-# If the image changed, the second stage image should be changed too
-FROM node:20-bookworm-slim AS base2-slim
+# DON'T UPDATE TO bullseye-slim, see #372.
+# There is no 20-buster-slim for armv7 unfortunately, 18-buster-slim is the last one for Uptime Kuma v1.
+FROM node:18-buster-slim
 ARG TARGETPLATFORM
 
 # Specify --no-install-recommends to skip unused dependencies, make the base much smaller!
