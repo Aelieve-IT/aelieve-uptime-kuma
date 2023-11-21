@@ -45,3 +45,15 @@ RUN set -eux && \
 # For nscd
 COPY ./docker/etc/nscd.conf /etc/nscd.conf
 COPY ./docker/etc/sudoers /etc/sudoers
+
+
+# Full Base Image
+# MariaDB, Chromium and fonts
+FROM base2-slim AS base2
+ENV UPTIME_KUMA_ENABLE_EMBEDDED_MARIADB=1
+RUN echo "deb http://deb.debian.org/debian testing main" >> /etc/apt/sources.list && \
+    apt update && \
+    apt --yes --no-install-recommends install chromium fonts-indic fonts-noto fonts-noto-cjk mariadb-server && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt --yes autoremove && \
+    chown -R node:node /var/lib/mysql

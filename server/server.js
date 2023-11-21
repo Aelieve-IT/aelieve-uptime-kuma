@@ -3,7 +3,6 @@
  * node "server/server.js"
  * DO NOT require("./server") in other modules, it likely creates circular dependency!
  */
-console.log("Welcome to Aelieve's Uptime Kuma");
 
 // As the log function need to use dayjs, it should be very top
 const dayjs = require("dayjs");
@@ -39,7 +38,7 @@ if (!semver.satisfies(nodeVersion, requiredNodeVersions)) {
 const args = require("args-parser")(process.argv);
 const { sleep, log, getRandomInt, genSecret, isDev } = require("../src/util");
 
-log.info("server", "Welcome to Aelieve's Uptime Kuma");
+console.log("Welcome to Aelieve's Uptime Kuma");
 log.debug("server", "Arguments");
 log.debug("server", args);
 

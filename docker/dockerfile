@@ -1,3 +1,5 @@
+ARG BASE_IMAGE=andrewaelieveit/aelieve-uptime-kuma:base2
+
 ############################################
 # Build in Golang
 # Run npm run build-healthcheck-armv7 in the host first, another it will be super slow where it is building the armv7 healthcheck
@@ -8,7 +10,8 @@ FROM andrewaelieveit/aelieve-uptime-kuma:builder-go AS build_healthcheck
 ############################################
 # Build in Node.js
 ############################################
-FROM andrewaelieveit/aelieve-uptime-kuma:base-debian AS build
+FROM andrewaelieveit/aelieve-uptime-kuma:base2 AS build
+USER node
 WORKDIR /app
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
@@ -25,6 +28,8 @@ RUN chmod +x /app/extra/entrypoint.sh
 ############################################
 FROM andrewaelieveit/aelieve-uptime-kuma:base-debian AS release
 WORKDIR /app
+
+LABEL org.opencontainers.image.source="https://github.com/andrewaelieveit/aelieve-uptime-kuma"
 
 ENV UPTIME_KUMA_IS_CONTAINER=1
 
@@ -47,8 +52,7 @@ RUN npm run mark-as-nightly
 ############################################
 # Build an image for testing pr
 ############################################
-FROM andrewaelieveit/aelieve-uptime-kuma:base-debian AS pr-test
-
+FROM andrewaelieveit/aelieve-uptime-kuma:base2 AS pr-test2
 WORKDIR /app
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
@@ -78,7 +82,7 @@ CMD ["npm", "run", "start-pr-test"]
 ############################################
 # Upload the artifact to Github
 ############################################
-FROM andrewaelieveit/aelieve-uptime-kuma:base-debian AS upload-artifact
+FROM andrewaelieveit/aelieve-uptime-kuma:base2 AS upload-artifact
 WORKDIR /
 RUN apt update && \
     apt --yes install curl file
