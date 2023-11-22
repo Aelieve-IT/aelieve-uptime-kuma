@@ -21,7 +21,7 @@ COPY package-lock.json package-lock.json
 RUN npm ci --omit=dev
 COPY . .
 COPY --from=build_healthcheck /app/extra/healthcheck /app/extra/healthcheck
-RUN chmod +x /app/extra/entrypoint.sh
+# RUN chmod +x /app/extra/entrypoint.sh
 
 ############################################
 # ⭐ Main Image
