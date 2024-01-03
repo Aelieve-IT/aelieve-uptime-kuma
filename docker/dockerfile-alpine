@@ -1,4 +1,4 @@
-FROM louislam/uptime-kuma:base-alpine AS build
+FROM andrewaelieveit/aelieve-uptime-kuma:base-alpine AS build
 WORKDIR /app
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
