@@ -128,7 +128,7 @@ exports.ping = async (hostname, size = 56) => {
         return await exports.pingAsync(hostname, false, size);
     } catch (e) {
         // If the host cannot be resolved, try again with ipv6
-        console.debug("ping", "IPv6 error message: " + e.message);
+        log.debug("ping", "IPv6 error message: " + e.message);
 
         // As node-ping does not report a specific error for this, try again if it is an empty message with ipv6 no matter what.
         if (!e.message) {
@@ -653,20 +653,26 @@ const parseCertificateInfo = function (info) {
 
 /**
  * Check if certificate is valid
- * @param {object} res Response object from axios
+ * @param {tls.TLSSocket} socket TLSSocket, which may or may not be connected
  * @returns {object} Object containing certificate information
- * @throws No socket was found to check certificate for
  */
-exports.checkCertificate = function (res) {
-    if (!res.request.res.socket) {
-        throw new Error("No socket found");
+exports.checkCertificate = function (socket) {
+    let certInfoStartTime = dayjs().valueOf();
+
+    // Return null if there is no socket
+    if (socket === undefined || socket == null) {
+        return null;
     }
 
-    const info = res.request.res.socket.getPeerCertificate(true);
-    const valid = res.request.res.socket.authorized || false;
+    const info = socket.getPeerCertificate(true);
+    const valid = socket.authorized || false;
 
     log.debug("cert", "Parsing Certificate Info");
     const parsedInfo = parseCertificateInfo(info);
+
+    if (process.env.TIMELOGGER === "1") {
+        log.debug("monitor", "Cert Info Query Time: " + (dayjs().valueOf() - certInfoStartTime) + "ms");
+    }
 
     return {
         valid: valid,
