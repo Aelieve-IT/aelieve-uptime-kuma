@@ -1,9 +1,9 @@
 /*
- * Uptime Kuma Server
+ * Aelieve Uptime Server
  * node "server/server.js"
  * DO NOT require("./server") in other modules, it likely creates circular dependency!
  */
-console.log("Welcome to Uptime Kuma");
+console.log("Welcome to Aelieve Uptime");
 
 // As the log function need to use dayjs, it should be very top
 const dayjs = require("dayjs");
@@ -25,7 +25,7 @@ console.log(`Your Node.js version: ${nodeVersion}`);
 const semver = require("semver");
 const requiredNodeVersionsComma = requiredNodeVersions.split("||").map((version) => version.trim()).join(", ");
 
-// Exit Uptime Kuma immediately if the Node.js version is banned
+// Exit Aelieve Uptime immediately if the Node.js version is banned
 if (semver.satisfies(nodeVersion, bannedNodeVersions)) {
     console.error("\x1b[31m%s\x1b[0m", `Error: Your Node.js version: ${nodeVersion} is not supported, please upgrade your Node.js to ${requiredNodeVersionsComma}.`);
     process.exit(-1);
@@ -40,7 +40,7 @@ const args = require("args-parser")(process.argv);
 const { sleep, log, getRandomInt, genSecret, isDev } = require("../src/util");
 const config = require("./config");
 
-log.info("server", "Welcome to Uptime Kuma");
+log.info("server", "Welcome to Aelieve's Uptime Kuma");
 log.debug("server", "Arguments");
 log.debug("server", args);
 
@@ -612,7 +612,7 @@ let needSetup = false;
                 }
 
                 if ((await R.count("user")) !== 0) {
-                    throw new Error("Uptime Kuma has been initialized. If you want to run setup again, please delete the database.");
+                    throw new Error("Aelieve Uptime has been initialized. If you want to run setup again, please delete the database.");
                 }
 
                 let user = R.dispense("user");
@@ -1777,7 +1777,7 @@ async function initDatabase(testMode = false) {
         log.info("server", "Load JWT secret from database.");
     }
 
-    // If there is no record in user table, it is a new Uptime Kuma instance, need to setup
+    // If there is no record in user table, it is a new Aelieve Uptime instance, need to setup
     if ((await R.count("user")) === 0) {
         log.info("server", "No user, need setup");
         needSetup = true;
